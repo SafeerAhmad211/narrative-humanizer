@@ -1,5 +1,8 @@
 # narrative-humanizer
 
+[![tests](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/tests.yml/badge.svg)](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Fix the *structural* reasons AI-written fiction still "reads AI" after a style pass —
 tidy plots, over-explained themes, over-described bodies, vague references,
 chronological linearity — instead of just swapping words.
