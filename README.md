@@ -1,6 +1,7 @@
 # narrative-humanizer
 
 [![tests](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/tests.yml/badge.svg)](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/tests.yml)
+[![publish Docker image](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/SafeerAhmad211/narrative-humanizer/actions/workflows/docker-publish.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fix the *structural* reasons AI-written fiction still "reads AI" after a style pass —
@@ -68,6 +69,25 @@ Run the tests:
 cd cli
 pip install -e ".[dev]" 2>/dev/null || pip install -e . pytest
 python -m pytest
+```
+
+## Quickstart: Docker
+
+The CLI is also published as a container image to [GitHub Container Registry](https://github.com/SafeerAhmad211/narrative-humanizer/pkgs/container/narrative-humanizer)
+on every push to `main` that touches `cli/` (see `.github/workflows/docker-publish.yml`) — check the
+[repo's Packages tab](https://github.com/SafeerAhmad211/narrative-humanizer/packages) for available tags.
+
+```bash
+docker pull ghcr.io/safeerahmad211/narrative-humanizer:latest
+
+# list-checklist needs no API key -- it's the default CMD, so this works with no args:
+docker run --rm ghcr.io/safeerahmad211/narrative-humanizer:latest
+
+# check needs ANTHROPIC_API_KEY and a story file mounted into the container:
+docker run --rm \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v "$(pwd)/story.txt:/home/app/story.txt:ro" \
+  ghcr.io/safeerahmad211/narrative-humanizer:latest check story.txt
 ```
 
 ## The checklist (short version)

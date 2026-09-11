@@ -1,0 +1,73 @@
+name: publish Docker image
+
+# Builds cli/Dockerfile and pushes it to GitHub Container Registry (ghcr.io),
+# which is what makes an image show up under this repo's "Packages" tab --
+# GitHub Packages has no native PyPI/pip registry, so a container image is
+# the standard way to publish a Python CLI tool there.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - ".github/workflows/docker-publish.yml"
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the cli test suite before building the image
+        working-directory: cli
+        run: |
+          python3 -m pip install -e . pytest
+          python3 -m pytest
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute lowercase image name
+        id: image
+        # OCI/Docker image names must be lowercase, but github.repository
+        # ("SafeerAhmad211/narrative-humanizer") preserves the owner's actual
+        # case -- lowercase it explicitly rather than let the push step fail.
+        run: echo "name=${REGISTRY,,}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            type=semver,pattern={{version}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: cli
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Smoke-test the published image
+        run: |
+          docker run --rm ${{ steps.image.outputs.name }}:latest list-checklist
