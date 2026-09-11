@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "narrative-humanizer"
 version = "0.1.0"
 description = "Detect and fix AI-typical narrative-structure defaults in fiction, grounded in the StoryScope (COLM 2026) findings."
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Safeer Ahmad" }]

@@ -25,6 +25,15 @@ def to_markdown(results: list[AxisResult], story_name: str = "story") -> str:
         for r in flagged:
             item = _BY_ID.get(r.id)
             if item is None:
+                # Don't silently drop a flagged finding just because its id doesn't
+                # match the checklist (e.g. a hallucinated/typo'd id from the model) -- 
+                # show what we have instead of losing the finding entirely.
+                lines += [
+                    f"### {r.id} (unrecognized axis id)",
+                    f"- **Evidence:** {r.evidence}",
+                    f"- **Suggested edit:** {r.suggested_edit or '(none provided)'}",
+                    "",
+                ]
                 continue
             lines += [
                 f"### {item.name}",

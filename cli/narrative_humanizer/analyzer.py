@@ -56,11 +56,66 @@ def _build_user_prompt(story_text: str) -> str:
     )
 
 
+def _extract_json_text(raw_text: str) -> str:
+    """Strip a Markdown code fence around a JSON payload, if present.
+
+    Models sometimes wrap JSON in ```json ... ``` or plain ``` ... ``` fences
+    despite instructions not to. This is intentionally a standalone, pure
+    function (no API calls) so the fence-stripping logic -- the most fragile
+    part of parsing a free-form model response -- can be unit tested directly
+    against many response shapes, not just exercised incidentally by a live
+    API call.
+    """
+    text = raw_text.strip()
+    if not text.startswith("```"):
+        return text
+
+    # Drop the opening fence line (```json or ```) and the closing fence line.
+    lines = text.splitlines()
+    lines = lines[1:]  # drop opening ``` (with optional language tag) line
+    if lines and lines[-1].strip().startswith("```"):
+        lines = lines[:-1]  # drop closing ``` line
+    return "\n".join(lines).strip()
+
+
+def _parse_axis_results(parsed: object) -> list[AxisResult]:
+    """Validate and convert the model's parsed JSON into AxisResult objects.
+
+    Raises RuntimeError with a specific, actionable message on any shape
+    mismatch, rather than letting a bare KeyError/TypeError from a malformed
+    model response surface to the CLI user.
+    """
+    if not isinstance(parsed, list):
+        raise RuntimeError(
+            f"Expected a JSON array of axis results, got {type(parsed).__name__}: {parsed!r}"
+        )
+
+    results: list[AxisResult] = []
+    for i, entry in enumerate(parsed):
+        if not isinstance(entry, dict):
+            raise RuntimeError(f"Axis result #{i} is not a JSON object: {entry!r}")
+        missing = [key for key in ("id", "ai_leaning_present") if key not in entry]
+        if missing:
+            raise RuntimeError(
+                f"Axis result #{i} is missing required field(s) {missing}: {entry!r}"
+            )
+        results.append(
+            AxisResult(
+                id=entry["id"],
+                ai_leaning_present=bool(entry["ai_leaning_present"]),
+                evidence=entry.get("evidence", ""),
+                suggested_edit=entry.get("suggested_edit", ""),
+            )
+        )
+    return results
+
+
 def analyze_story(story_text: str, model: str = "claude-sonnet-5") -> list[AxisResult]:
     """Score a story against the checklist using the Anthropic API.
 
     Requires the ``anthropic`` package and an ``ANTHROPIC_API_KEY`` environment
-    variable. Raises RuntimeError with a clear message if either is missing.
+    variable. Raises RuntimeError with a clear message if either is missing,
+    or if the model's response can't be parsed into axis results.
     """
     try:
         import anthropic
@@ -88,26 +143,13 @@ def analyze_story(story_text: str, model: str = "claude-sonnet-5") -> list[AxisR
         block.text for block in response.content if getattr(block, "type", None) == "text"
     ).strip()
 
-    # Models sometimes wrap JSON in a code fence despite instructions; strip it defensively.
-    if raw_text.startswith("```"):
-        raw_text = raw_text.strip("`")
-        if raw_text.startswith("json"):
-            raw_text = raw_text[4:]
-        raw_text = raw_text.strip()
+    json_text = _extract_json_text(raw_text)
 
     try:
-        parsed = json.loads(raw_text)
+        parsed = json.loads(json_text)
     except json.JSONDecodeError as exc:
         raise RuntimeError(
             f"Could not parse model output as JSON. Raw output was:\n{raw_text}"
         ) from exc
 
-    return [
-        AxisResult(
-            id=entry["id"],
-            ai_leaning_present=bool(entry["ai_leaning_present"]),
-            evidence=entry.get("evidence", ""),
-            suggested_edit=entry.get("suggested_edit", ""),
-        )
-        for entry in parsed
-    ]
+    return _parse_axis_results(parsed)

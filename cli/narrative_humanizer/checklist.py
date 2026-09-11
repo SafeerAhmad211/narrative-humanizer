@@ -7,7 +7,7 @@ reported in the paper; see docs/research-summary.md for full citations and
 context per finding.
 
 This data structure exists so the checklist is a single source of truth used
-by both the analyzer (LLM-driven scoring) and any future rule-based checks —
+by both the analyzer (LLM-driven scoring) and any future rule-based checks -- 
 it deliberately holds no code, just facts + guidance, so it stays easy to
 audit against the paper.
 """
@@ -97,10 +97,10 @@ CHECKLIST: list[ChecklistItem] = [
             "settled protagonists, subplots that all feed the same theme."
         ),
         human_leaning=(
-            "A rarer combination of narrative choices — humans occupy a "
+            "A rarer combination of narrative choices -- humans occupy a "
             "statistically more dispersed region of 'narrative-choice space.'"
         ),
-        fix="Where a scene has an obvious default treatment, try an atypical combination of setting/power/outcome instead — not novelty for its own sake, just avoiding the converged AI center.",
+        fix="Where a scene has an obvious default treatment, try an atypical combination of setting/power/outcome instead -- not novelty for its own sake, just avoiding the converged AI center.",
         stat="Mean rarity percentile: 0.71 human vs. 0.49 AI. Morally ambivalent protagonist: 59% human vs. 38% AI.",
     ),
 ]
